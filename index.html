@@ -21,17 +21,22 @@
 <body>
   <div id="root"></div>
   <script type="text/babel">
+    // Aktivace Day.js pluginů
     dayjs.extend(window.dayjs_plugin_isoWeek);
     dayjs.extend(window.dayjs_plugin_isBetween);
+
     const { useState } = React;
     const daysOfWeek = ["Pondělí","Úterý","Středa","Čtvrtek","Pátek","Sobota","Neděle"];
+
     function App() {
       const [weekStart, setWeekStart] = useState(dayjs().startOf("week").add(1,"day"));
       const [vehicles, setVehicles] = useState([{id:1,spz:"",trailer:"",driver:"",note:""}]);
       const [shipments, setShipments] = useState([]);
+
       const weekDates = Array.from({length:7},(_,i)=>weekStart.add(i,"day"));
       const addVehicle = ()=> setVehicles([...vehicles,{id:Date.now(),spz:"",trailer:"",driver:"",note:""}]);
       const updateVehicle = (id,field,val)=> setVehicles(vehicles.map(v=>v.id===id?{...v,[field]:val}:v));
+
       const addShipment = () => {
         const defaultVehicle = vehicles[0]?.id;
         setShipments([...shipments,{
@@ -43,10 +48,12 @@
         }]);
       };
       const updateShipment = (id,field,val)=> setShipments(shipments.map(s=>s.id===id?{...s,[field]:val}:s));
+
       const filterShipments = (vid,day)=> shipments.filter(s=>{
         const l=dayjs(s.loadTime), u=dayjs(s.unloadTime);
         return s.vehicleId===vid && day.isBetween(l.startOf("day"),u.endOf("day"),null,"[]");
       });
+
       const calcWeeklyStats = vid=>{
         const start=weekStart.startOf("day"), end=weekStart.add(6,"day").endOf("day");
         const vship=shipments.filter(s=>
@@ -57,13 +64,14 @@
         const czk=vship.reduce((a,s)=>a+(+s.price*(+s.weight/1000)),0);
         return km? (czk/km).toFixed(2):"0";
       };
+
       return (
         <div>
           <h2>Dispečerská plachta – inline úpravy</h2>
           <div className="week-header">
             <label>Začátek týdne:</label>
             <input type="date" value={weekStart.format("YYYY-MM-DD")}
-                   onChange={e=>setWeekStart(dayjs(e.target.value))}/>
+                   onChange={e=>setWeekStart(dayjs(e.target.value))} />
             <button onClick={()=>setWeekStart(weekStart.subtract(7,"day"))}>← Předchozí</button>
             <button onClick={()=>setWeekStart(weekStart.add(7,"day"))}>Další →</button>
           </div>
@@ -130,4 +138,3 @@
   </script>
 </body>
 </html>
-Commit message (“Add React app”)
