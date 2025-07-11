@@ -2,144 +2,131 @@
 <html lang="cs">
 <head>
   <meta charset="UTF-8" />
-  <title>Dispečerská plachta – inline úpravy</title>
-  <!-- React + ReactDOM -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <!-- Babel pro JSX -->
-  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
-  <!-- dayjs + pluginy -->
-  <script src="https://unpkg.com/dayjs/dayjs.min.js"></script>
-  <script src="https://unpkg.com/dayjs/plugin/isBetween.js"></script>
-  <script src="https://unpkg.com/dayjs/plugin/isoWeek.js"></script>
+  <title>Dispečerská plachta – inline úpravy (ESM)</title>
   <style>
-    body { font-family: sans-serif; padding: 1rem; }
-    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-    th, td { border: 1px solid #ccc; padding: 8px; vertical-align: top; }
-    th { background: #eee; }
-    input, select, button { margin: 2px; padding: 4px; }
-    .week-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    body { font-family:sans-serif; padding:1rem }
+    table { width:100%; border-collapse:collapse; margin-top:1rem }
+    th,td { border:1px solid #ccc; padding:8px; vertical-align:top }
+    th { background:#eee }
+    input,select,button { margin:2px; padding:4px }
+    .week-header { display:flex; align-items:center; gap:10px; margin-bottom:10px }
   </style>
 </head>
 <body>
   <div id="root"></div>
+  <script type="module">
+    import React, { useState } from 'https://esm.sh/react@18';
+    import ReactDOM from 'https://esm.sh/react-dom@18';
+    import dayjs from 'https://esm.sh/dayjs';
+    import isoWeek from 'https://esm.sh/dayjs/plugin/isoWeek';
+    import isBetween from 'https://esm.sh/dayjs/plugin/isBetween';
 
-  <script type="text/babel">
-    // aktivace pluginů dayjs
-    dayjs.extend(window.dayjs_plugin_isoWeek);
-    dayjs.extend(window.dayjs_plugin_isBetween);
+    dayjs.extend(isoWeek);
+    dayjs.extend(isBetween);
 
-    const { useState } = React;
     const daysOfWeek = ["Pondělí","Úterý","Středa","Čtvrtek","Pátek","Sobota","Neděle"];
 
     function App() {
-      const [weekStart, setWeekStart] = useState(dayjs().startOf("week").add(1,"day"));
-      const [vehicles, setVehicles] = useState([{id:1,spz:"",trailer:"",driver:"",note:""}]);
+      const [weekStart, setWeekStart] = useState(dayjs().startOf('week').add(1,'day'));
+      const [vehicles, setVehicles] = useState([{ id:1, spz:'', trailer:'', driver:'', note:'' }]);
       const [shipments, setShipments] = useState([]);
 
-      const weekDates = Array.from({length:7},(_,i)=>weekStart.add(i,"day"));
+      const weekDates = Array(7).fill(0).map((_,i)=> weekStart.add(i,'day'));
 
-      // přidat nové vozidlo
-      const addVehicle = ()=> setVehicles([...vehicles,{id:Date.now(),spz:"",trailer:"",driver:"",note:""}]);
-      // aktualizovat vlastnost vozidla
+      const addVehicle = () =>
+        setVehicles(vs=>[...vs,{ id:Date.now(), spz:'', trailer:'', driver:'', note:'' }]);
+
       const updateVehicle = (id,field,val) =>
-        setVehicles(vehicles.map(v=>v.id===id?{...v,[field]:val}:v));
+        setVehicles(vs=>vs.map(v=>v.id===id?{...v,[field]:val}:v));
 
-      // přidat novou prázdnou přepravu do stavu
       const addShipment = () => {
-        const defaultVehicle = vehicles[0]?.id;
-        setShipments([...shipments,{
-          id:Date.now(),
-          vehicleId:defaultVehicle,
-          company:"",from:"",to:"",
-          weight:"",price:"",distance:"",transferKm:"",
-          loadTime: dayjs().format("YYYY-MM-DDT08:00"),
-          unloadTime: dayjs().add(1,"day").format("YYYY-MM-DDT17:00")
+        const vid = vehicles[0]?.id;
+        setShipments(s=>[...s,{
+          id:Date.now(), vehicleId:vid,
+          company:'', from:'', to:'',
+          weight:'', price:'', distance:'', transferKm:'',
+          loadTime: dayjs().format('YYYY-MM-DDT08:00'),
+          unloadTime: dayjs().add(1,'day').format('YYYY-MM-DDT17:00')
         }]);
       };
-      // upravit libovolné pole přepravy
-      const updateShipment = (id,field,val)=>
-        setShipments(shipments.map(s=>s.id===id?{...s,[field]:val}:s));
 
-      // vyfiltrovat přepravy pro dané vozidlo a den
+      const updateShipment = (id,field,val) =>
+        setShipments(s=>s.map(x=>x.id===id?{...x,[field]:val}:x));
+
       const filterShipments = (vid,day) =>
         shipments.filter(s=>{
-          const l = dayjs(s.loadTime), u = dayjs(s.unloadTime);
-          return s.vehicleId===vid && day.isBetween(l.startOf("day"),u.endOf("day"),null,"[]");
+          const L=dayjs(s.loadTime), U=dayjs(s.unloadTime);
+          return s.vehicleId===vid && day.isBetween(L.startOf('day'), U.endOf('day'), null, '[]');
         });
 
-      // spočítat výkon vozidla za týden (CZK/km)
       const calcWeeklyStats = vid => {
-        const start = weekStart.startOf("day"), end=weekStart.add(6,"day").endOf("day");
+        const start=weekStart.startOf('day'), end=weekStart.add(6,'day').endOf('day');
         const vship = shipments.filter(s=>
-          s.vehicleId===vid &&
-          (dayjs(s.loadTime).isBetween(start,end,null,"[]")||dayjs(s.unloadTime).isBetween(start,end,null,"[]"))
+          s.vehicleId===vid && (
+            dayjs(s.loadTime).isBetween(start,end,null,'[]') ||
+            dayjs(s.unloadTime).isBetween(start,end,null,'[]')
+          )
         );
-        const km = vship.reduce((a,s)=>a+(+s.distance||0)+(+s.transferKm||0),0);
-        const czk = vship.reduce((a,s)=>a+(+s.price*(+s.weight/1000)),0);
-        return km? (czk/km).toFixed(2):"0";
+        const km = vship.reduce((a,s)=>a + (+s.distance||0) + (+s.transferKm||0), 0);
+        const czk= vship.reduce((a,s)=>a + (+s.price * (+s.weight/1000)), 0);
+        return km ? (czk/km).toFixed(2) : '0';
       };
 
       return (
         <div>
-          <h2>Dispečerská plachta – inline úpravy</h2>
+          <h2>Dispečerská plachta</h2>
           <div className="week-header">
             <label>Začátek týdne:</label>
-            <input type="date" value={weekStart.format("YYYY-MM-DD")}
+            <input type="date"
+                   value={weekStart.format('YYYY-MM-DD')}
                    onChange={e=>setWeekStart(dayjs(e.target.value))} />
-            <button onClick={()=>setWeekStart(weekStart.subtract(7,"day"))}>← Předchozí</button>
-            <button onClick={()=>setWeekStart(weekStart.add(7,"day"))}>Další →</button>
+            <button onClick={()=>setWeekStart(ws=>ws.subtract(7,'day'))}>← Předchozí</button>
+            <button onClick={()=>setWeekStart(ws=>ws.add(7,'day'))}>Další →</button>
           </div>
-
           <button onClick={addVehicle}>Přidat vozidlo</button>
           <button onClick={addShipment}>Přidat přepravu</button>
-
           <table>
             <thead>
               <tr>
                 <th>Vozidlo / Den</th>
-                {weekDates.map((d,i)=><th key={i}>
-                  {daysOfWeek[i]}<br/>{d.format("DD.MM.YYYY")}
-                </th>)}
+                {weekDates.map((d,i)=>(
+                  <th key={i}>{daysOfWeek[i]}<br/>{d.format('DD.MM.YYYY')}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {vehicles.map(v=>(
                 <tr key={v.id}>
                   <td>
-                    <input placeholder="SPZ" value={v.spz}
-                           onChange={e=>updateVehicle(v.id,"spz",e.target.value)} /><br/>
-                    <input placeholder="Návěs" value={v.trailer}
-                           onChange={e=>updateVehicle(v.id,"trailer",e.target.value)} /><br/>
-                    <input placeholder="Řidič" value={v.driver}
-                           onChange={e=>updateVehicle(v.id,"driver",e.target.value)} /><br/>
-                    <input placeholder="Poznámka" value={v.note}
-                           onChange={e=>updateVehicle(v.id,"note",e.target.value)} /><br/>
+                    <input placeholder="SPZ"    value={v.spz}     onChange={e=>updateVehicle(v.id,'spz',e.target.value)} /><br/>
+                    <input placeholder="Návěs" value={v.trailer} onChange={e=>updateVehicle(v.id,'trailer',e.target.value)} /><br/>
+                    <input placeholder="Řidič"  value={v.driver}  onChange={e=>updateVehicle(v.id,'driver',e.target.value)} /><br/>
+                    <input placeholder="Poznámka" value={v.note} onChange={e=>updateVehicle(v.id,'note',e.target.value)} /><br/>
                     <b>Výsledek: {calcWeeklyStats(v.id)} CZK/km</b>
                   </td>
                   {weekDates.map((day,i)=>(
                     <td key={i}>
                       {filterShipments(v.id,day).map(s=>(
-                        <div key={s.id} style={{marginBottom:4,padding:4,border:"1px solid #ddd"}}>
-                          <input value={s.company} placeholder="Firma"
-                                 onChange={e=>updateShipment(s.id,"company",e.target.value)} /><br/>
-                          <input value={s.from} placeholder="Odkud"
-                                 onChange={e=>updateShipment(s.id,"from",e.target.value)} /> →
-                          <input value={s.to} placeholder="Kam"
-                                 onChange={e=>updateShipment(s.id,"to",e.target.value)} /><br/>
+                        <div key={s.id} style={{border:'1px solid #ddd',margin:'4px 0',padding:'4px'}}>
+                          <input value={s.company}  placeholder="Firma"
+                                 onChange={e=>updateShipment(s.id,'company',e.target.value)} /><br/>
+                          <input value={s.from}     placeholder="Odkud"
+                                 onChange={e=>updateShipment(s.id,'from',e.target.value)} /> → 
+                          <input value={s.to}       placeholder="Kam"
+                                 onChange={e=>updateShipment(s.id,'to',e.target.value)} /><br/>
                           <input type="datetime-local" value={s.loadTime}
-                                 onChange={e=>updateShipment(s.id,"loadTime",e.target.value)} /> →
+                                 onChange={e=>updateShipment(s.id,'loadTime',e.target.value)} /> →
                           <input type="datetime-local" value={s.unloadTime}
-                                 onChange={e=>updateShipment(s.id,"unloadTime",e.target.value)} /><br/>
-                          <input type="number" value={s.weight} placeholder="Váha"
-                                 onChange={e=>updateShipment(s.id,"weight",e.target.value)} />kg,
-                          <input type="number" value={s.distance} placeholder="Km"
-                                 onChange={e=>updateShipment(s.id,"distance",e.target.value)} />km+
-                          <input type="number" value={s.transferKm} placeholder="Přejezd"
-                                 onChange={e=>updateShipment(s.id,"transferKm",e.target.value)} />km<br/>
-                          <input type="number" value={s.price} placeholder="Cena CZK/t"
-                                 onChange={e=>updateShipment(s.id,"price",e.target.value)} />=
-                          {(s.price*s.weight/1000).toFixed(2)} CZK
+                                 onChange={e=>updateShipment(s.id,'unloadTime',e.target.value)} /><br/>
+                          <input type="number" value={s.weight}     placeholder="Váha (kg)"
+                                 onChange={e=>updateShipment(s.id,'weight',e.target.value)} />kg, 
+                          <input type="number" value={s.distance}   placeholder="Km"
+                                 onChange={e=>updateShipment(s.id,'distance',e.target.value)} />km + 
+                          <input type="number" value={s.transferKm} placeholder="Přejezd km"
+                                 onChange={e=>updateShipment(s.id,'transferKm',e.target.value)} />km<br/>
+                          <input type="number" value={s.price}      placeholder="Cena CZK/t"
+                                 onChange={e=>updateShipment(s.id,'price',e.target.value)} /> = 
+                          {(s.price * s.weight / 1000).toFixed(2)} CZK
                         </div>
                       ))}
                     </td>
@@ -152,7 +139,7 @@
       );
     }
 
-    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
 </body>
 </html>
