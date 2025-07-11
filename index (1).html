@@ -1,0 +1,163 @@
+
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Dispečerská plachta</title>
+  <style>
+    body{font-family:sans-serif;padding:1rem}
+    table{width:100%;border-collapse:collapse;margin-top:1rem}
+    th,td{border:1px solid #ccc;padding:8px;vertical-align:top}
+    th{background:#eee}
+    input,select,button{margin:2px;padding:4px}
+    .week-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .shipment{border:1px solid #ddd;margin:4px 0;padding:4px}
+    .vehicle-inputs input{width:90%;margin-bottom:4px}
+  </style>
+</head>
+<body>
+
+  <h1>Dispečerská plachta</h1>
+
+  <div class="week-header">
+    <label>Začátek týdne:</label>
+    <input type="date" id="weekStart">
+    <button id="prevWeek">← Předchozí týden</button>
+    <button id="nextWeek">Následující týden →</button>
+  </div>
+
+  <button id="addVehicle">Přidat vozidlo</button>
+  <button id="addShipment">Přidat přepravu</button>
+
+  <table id="dispatchTable">
+    <thead><tr>
+      <th>Vozidlo / Den</th>
+    </tr></thead>
+    <tbody></tbody>
+  </table>
+
+<script>
+(function(){
+  function fmtDate(d){ return d.toLocaleDateString('cs',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+  function addDays(d,n){ let x=new Date(d); x.setDate(x.getDate()+n); return x; }
+  function parseLocal(dt){
+    if(!dt) return new Date(NaN);
+    let [date,time] = dt.split('T');
+    let [Y,M,D] = date.split('-').map(Number);
+    let [h,m] = time.split(':').map(Number);
+    return new Date(Y, M-1, D, h, m);
+  }
+
+  let vehicles = [];
+  let shipments = [];
+
+  const weekInput = document.getElementById('weekStart');
+  const prevBtn = document.getElementById('prevWeek');
+  const nextBtn = document.getElementById('nextWeek');
+  const tbl = document.getElementById('dispatchTable');
+  const tbody = tbl.querySelector('tbody');
+  const addVBtn = document.getElementById('addVehicle');
+  const addSBtn = document.getElementById('addShipment');
+
+  let weekStart = new Date();
+  weekStart.setDate(weekStart.getDate() - ((weekStart.getDay()+6)%7));
+  weekInput.value = weekStart.toISOString().slice(0,10);
+
+  weekInput.onchange = ()=>{ weekStart=new Date(weekInput.value); render(); };
+  prevBtn.onclick   = ()=>{ weekStart=addDays(weekStart,-7); weekInput.value=weekStart.toISOString().slice(0,10); render(); };
+  nextBtn.onclick   = ()=>{ weekStart=addDays(weekStart, 7); weekInput.value=weekStart.toISOString().slice(0,10); render(); };
+
+  addVBtn.onclick = ()=>{
+    vehicles.push({ id:Date.now(), spz:'', trailer:'', driver:'', note:'' });
+    render();
+  };
+
+  addSBtn.onclick = ()=>{
+    if(vehicles.length===0){ alert('Nejdříve přidej vozidlo'); return; }
+    shipments.push({
+      id: Date.now(),
+      vehicleId: vehicles[0].id,
+      company:'', from:'', to:'', druhNakladu:'',
+      weight:'', price:'', distance:'', transferKm:'',
+      load:  weekStart.toISOString().slice(0,16),
+      unload:addDays(weekStart,1).toISOString().slice(0,16)
+    });
+    render();
+  };
+
+  function render(){
+    const headRow = tbl.querySelector('thead tr');
+    headRow.innerHTML = '<th>Vozidlo / Den</th>';
+    for(let i=0;i<7;i++){
+      const d=addDays(weekStart,i), th=document.createElement('th');
+      th.innerHTML = ['Po','Út','St','Čt','Pá','So','Ne'][i]+'<br>'+fmtDate(d);
+      headRow.appendChild(th);
+    }
+    tbody.innerHTML='';
+    vehicles.forEach(v=>{
+      const tr=document.createElement('tr');
+      const td0=document.createElement('td');
+      const vi=document.createElement('div'); vi.className='vehicle-inputs';
+      ['spz','trailer','driver','note'].forEach(f=>{
+        const inp=document.createElement('input');
+        inp.placeholder=f.toUpperCase(); inp.value=v[f];
+        inp.onchange=e=>{ v[f]=e.target.value; };
+        vi.appendChild(inp);
+      });
+      td0.appendChild(vi);
+
+      const start=weekStart, end=addDays(weekStart,7);
+      const weekShip=shipments.filter(s=>
+        s.vehicleId===v.id &&
+        parseLocal(s.load)<end &&
+        parseLocal(s.unload)>=start
+      );
+      let totKm=0, totCZK=0;
+      weekShip.forEach(s=>{
+        totKm+=(+s.distance||0)+(+s.transferKm||0);
+        totCZK+=(+s.price||0)*((+s.weight||0)/1000);
+      });
+      const stat=document.createElement('div');
+      stat.innerHTML='<b>Výsledek: '+(totKm? (totCZK/totKm).toFixed(2):'0')+' CZK/km</b>';
+      td0.appendChild(stat);
+      tr.appendChild(td0);
+
+      for(let i=0;i<7;i++){
+        const d=addDays(weekStart,i), td=document.createElement('td');
+        const dayShipments = shipments.filter(s=>
+          s.vehicleId===v.id &&
+          parseLocal(s.load)<addDays(d,1) &&
+          parseLocal(s.unload)>=d
+        ).sort((a,b)=> parseLocal(a.load) - parseLocal(b.load));
+        dayShipments.forEach(s=>{
+          const div=document.createElement('div'); div.className='shipment';
+          ['company','from','to','druhNakladu','weight','price','distance','transferKm'].forEach(f=>{
+            const inp=document.createElement('input');
+            inp.placeholder = f; inp.value=s[f];
+            inp.onchange=e=>{ s[f]=e.target.value; render(); };
+            div.appendChild(inp);
+          });
+          ['load','unload'].forEach(f=>{
+            const inp=document.createElement('input');
+            inp.type='datetime-local'; inp.value=s[f];
+            inp.onchange=e=>{ s[f]=e.target.value; render(); };
+            div.appendChild(inp);
+          });
+          const vkg=(+s.weight||0)/1000;
+          const cost=document.createElement('div');
+          cost.innerText=((+s.price||0)*vkg).toFixed(2)+' CZK';
+          div.appendChild(cost);
+          td.appendChild(div);
+        });
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    });
+  }
+
+  render();
+})();
+</script>
+
+</body>
+</html>
