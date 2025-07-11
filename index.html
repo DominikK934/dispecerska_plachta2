@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8"/>
   <title>Dispečerská plachta</title>
   <style>
-    body { font-family: sans-serif; padding: 1rem; }
-    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-    th, td { border: 1px solid #ccc; padding: 8px; vertical-align: top; }
-    th { background: #eee; }
-    input, select, button { margin: 2px; padding: 4px; }
-    .week-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-    .shipment { border: 1px solid #ddd; margin-bottom: 4px; padding: 4px; }
-    .vehicle-inputs input { width: 90%; margin-bottom: 4px; }
+    body{font-family:sans-serif;padding:1rem}
+    table{width:100%;border-collapse:collapse;margin-top:1rem}
+    th,td{border:1px solid #ccc;padding:8px;vertical-align:top}
+    th{background:#eee}
+    input,select,button{margin:2px;padding:4px}
+    .week-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .shipment{border:1px solid #ddd;margin:4px 0;padding:4px}
+    .vehicle-inputs input{width:90%;margin-bottom:4px}
   </style>
 </head>
 <body>
@@ -31,127 +31,125 @@
   <table id="dispatchTable">
     <thead><tr>
       <th>Vozidlo / Den</th>
-      <!-- dny budou vloženy skriptem -->
     </tr></thead>
-    <tbody>
-      <!-- vozidla a přepravy vložíme skriptem -->
-    </tbody>
+    <tbody></tbody>
   </table>
 
 <script>
 (function(){
-  // pomocné
-  function format(d){ return d.toLocaleDateString('cs',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+  function fmtDate(d){ return d.toLocaleDateString('cs',{day:'2-digit',month:'2-digit',year:'numeric'}); }
   function addDays(d,n){ let x=new Date(d); x.setDate(x.getDate()+n); return x; }
 
-  // data
-  let vehicles = [];      // {id, spz,trailer,driver,note}
-  let shipments = [];     // {id, vehicleId, company,from,to,weight,price,distance,transferKm, load,unload}
+  let vehicles = [];
+  let shipments = [];
 
-  // DOM
   const weekInput = document.getElementById('weekStart');
-  const prevBtn = document.getElementById('prevWeek');
-  const nextBtn = document.getElementById('nextWeek');
-  const tbl = document.getElementById('dispatchTable');
-  const tbody = tbl.querySelector('tbody');
-  const addVBtn = document.getElementById('addVehicle');
-  const addSBtn = document.getElementById('addShipment');
+  const prevBtn    = document.getElementById('prevWeek');
+  const nextBtn    = document.getElementById('nextWeek');
+  const tbl        = document.getElementById('dispatchTable');
+  const tbody      = tbl.querySelector('tbody');
+  const addVBtn    = document.getElementById('addVehicle');
+  const addSBtn    = document.getElementById('addShipment');
 
-  // init week start = pondělí tohoto týdne
+  // inicializace týdne (pondělí)
   let weekStart = new Date();
   weekStart.setDate(weekStart.getDate() - ((weekStart.getDay()+6)%7));
   weekInput.value = weekStart.toISOString().slice(0,10);
 
-  // události
   weekInput.onchange = ()=>{ weekStart=new Date(weekInput.value); render(); };
-  prevBtn.onclick   = ()=>{ weekStart=addDays(weekStart,-7); weekInput.value=weekStart.toISOString().slice(0,10); render(); };
-  nextBtn.onclick   = ()=>{ weekStart=addDays(weekStart, 7); weekInput.value=weekStart.toISOString().slice(0,10); render(); };
+  prevBtn.onclick    = ()=>{ weekStart=addDays(weekStart,-7); weekInput.value=weekStart.toISOString().slice(0,10); render(); };
+  nextBtn.onclick    = ()=>{ weekStart=addDays(weekStart, 7); weekInput.value=weekStart.toISOString().slice(0,10); render(); };
 
   addVBtn.onclick = ()=>{
-    vehicles.push({ id:Date.now(), spz:'',trailer:'',driver:'',note:'' });
+    vehicles.push({id:Date.now(),spz:'',trailer:'',driver:'',note:''});
     render();
   };
+
   addSBtn.onclick = ()=>{
-    if(vehicles.length===0){ alert('Přidej nejdřív vozidlo'); return;}
+    if(vehicles.length===0){ alert('Přidej nejdřív vozidlo'); return; }
     shipments.push({
-      id:Date.now(), vehicleId:vehicles[0].id,
+      id:Date.now(),
+      vehicleId: vehicles[0].id,
       company:'',from:'',to:'',
       weight:'',price:'',distance:'',transferKm:'',
-      load: new Date(weekStart).toISOString().slice(0,16),
+      load:  weekStart.toISOString().slice(0,16),
       unload:addDays(weekStart,1).toISOString().slice(0,16)
     });
     render();
   };
 
-  // render
   function render(){
     // hlavička
-    const hdr = tbl.querySelector('thead tr');
-    hdr.innerHTML = '<th>Vozidlo / Den</th>';
+    const headRow = tbl.querySelector('thead tr');
+    headRow.innerHTML = '<th>Vozidlo / Den</th>';
     for(let i=0;i<7;i++){
-      const d = addDays(weekStart,i);
-      const th=document.createElement('th');
-      th.innerHTML = ['Po','Út','St','Čt','Pá','So','Ne'][i] + '<br>' + format(d);
-      hdr.appendChild(th);
+      const d = addDays(weekStart,i), th=document.createElement('th');
+      th.innerHTML = ['Po','Út','St','Čt','Pá','So','Ne'][i] + '<br>' + fmtDate(d);
+      headRow.appendChild(th);
     }
+
     // tělo
     tbody.innerHTML = '';
     vehicles.forEach(v=>{
-      const tr = document.createElement('tr');
-      // vozidlo
-      const td0 = document.createElement('td');
-      const fi = document.createElement('div');
-      fi.className='vehicle-inputs';
-      ['spz','trailer','driver','note'].forEach(field=>{
+      const tr=document.createElement('tr');
+      // buňka vozidlo
+      const td0=document.createElement('td'), fin=document.createElement('div');
+      fin.className='vehicle-inputs';
+      ['spz','trailer','driver','note'].forEach(f=>{
         const inp=document.createElement('input');
-        inp.placeholder=field.toUpperCase();
-        inp.value=v[field];
-        inp.onchange=e=>{ v[field]=e.target.value; };
-        fi.appendChild(inp); 
+        inp.placeholder=f.toUpperCase();
+        inp.value=v[f];
+        inp.onchange=e=>{ v[f]=e.target.value; };
+        fin.appendChild(inp);
       });
-      // výpočet výkonu
+      td0.appendChild(fin);
+
+      // výpočet týdne (CZK/km)
+      const start=weekStart, end=addDays(weekStart,7);
+      const weekShip = shipments.filter(s=>
+        s.vehicleId===v.id &&
+        new Date(s.load)  < end &&
+        new Date(s.unload)>= start
+      );
+      let totalKm=0, totalCZK=0;
+      weekShip.forEach(s=>{
+        totalKm += (+s.distance||0) + (+s.transferKm||0);
+        totalCZK += (+s.price||0)*((+s.weight||0)/1000);
+      });
       const stat=document.createElement('div');
-      const weekly= shipments.filter(s=>s.vehicleId===v.id && (new Date(s.load)>=weekStart && new Date(s.load)<addDays(weekStart,7)));
-      let km=0, czk=0;
-      weekly.forEach(s=>{
-        km += (+s.distance||0) + (+s.transferKm||0);
-        czk += (+s.price||0)*((+s.weight||0)/1000);
-      });
-      stat.innerHTML='<b>Výsledek: '+(km? (czk/km).toFixed(2):'0')+' CZK/km</b>';
-      td0.appendChild(fi);
+      stat.innerHTML = '<b>Výsledek: ' + (totalKm? (totalCZK/totalKm).toFixed(2) : '0') + ' CZK/km</b>';
       td0.appendChild(stat);
       tr.appendChild(td0);
-      // dny
+
+      // buňky dnů
       for(let i=0;i<7;i++){
-        const d=addDays(weekStart,i);
-        const td=document.createElement('td');
-        // vložit přepravy pro toto vozidlo a den
-        shipments.filter(s=>{
-          return s.vehicleId===v.id && (new Date(s.load)<=addDays(d,1) && new Date(s.unload)>=d);
-        }).forEach(s=>{
+        const d=addDays(weekStart,i), td=document.createElement('td');
+        // přepravy inline
+        shipments.filter(s=>
+          s.vehicleId===v.id &&
+          new Date(s.load)  < addDays(d,1) &&
+          new Date(s.unload)>= d
+        ).forEach(s=>{
           const div=document.createElement('div');
           div.className='shipment';
-          // každý field jako input
+          // textová pole
           ['company','from','to','weight','price','distance','transferKm'].forEach(f=>{
             const inp=document.createElement('input');
-            inp.style.width='80px';
-            inp.placeholder=f;
-            inp.value=s[f];
+            inp.placeholder=f; inp.value=s[f];
             inp.onchange=e=>{ s[f]=e.target.value; render(); };
             div.appendChild(inp);
           });
           // časy
           ['load','unload'].forEach(f=>{
             const inp=document.createElement('input');
-            inp.type='datetime-local';
-            inp.value=s[f];
+            inp.type='datetime-local'; inp.value=s[f];
             inp.onchange=e=>{ s[f]=e.target.value; render(); };
             div.appendChild(inp);
           });
-          // výpočet přepravy
-          const val=document.createElement('div');
+          // cena přepravy
           const vkg=(+s.weight||0)/1000;
-          val.innerText=((+s.price||0)*vkg).toFixed(2)+' CZK';
+          const val=document.createElement('div');
+          val.innerText = ((+s.price||0)*vkg).toFixed(2) + ' CZK';
           div.appendChild(val);
           td.appendChild(div);
         });
